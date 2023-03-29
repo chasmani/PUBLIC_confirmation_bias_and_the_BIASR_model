@@ -324,8 +324,6 @@ def draw_bayes_net():
 	# explicitly set positions
 	pos = {"H": (-1, 0.5), "R": (1, 0.5), "D": (0, 0), 4:(0,1), 5:(0,-0.5)}
 
-
-
 	options = {
 	    "font_size": 12,
 	    "node_size": 1000,
@@ -395,10 +393,7 @@ def plot_biased_evaluation_with_bayes_net():
 
 	plt.title("Confirming Evidence\nP(H,R|D=1)")
 
-	# bayes net
-	ax4 = plt.subplot(gs[0,0])
 
-	draw_bayes_net()
 
 	# Condition prob table
 	ax5 = plt.subplot(gs[0,3])
@@ -406,9 +401,9 @@ def plot_biased_evaluation_with_bayes_net():
 	draw_table(prob_true_R = prob_true_Ann, prob_true_not_R = prob_true_Bob)
 
 
-	axs = [ax1, ax2, ax3, ax4, ax5]
-	ax_labels = ["b", "d", "e", "a", "c"]
-	for ax_index in range(5):
+	axs = [ax1, ax2, ax3, ax5]
+	ax_labels = ["a", "c", "d", "b"]
+	for ax_index in range(4):
 		ax = axs[ax_index]
 		ax_label = ax_labels[ax_index]
 
@@ -418,10 +413,10 @@ def plot_biased_evaluation_with_bayes_net():
 			ax.text(0.0, 1.0, z=10, s=ax_label, transform=ax.transAxes + trans,
 					fontsize='large', va='bottom', weight="bold")
 		else:
-			ax.text(0.0, 1.0, s=ax_label, transform=ax.transAxes + trans,
+			ax.text(0.0, 0.8, s=ax_label, transform=ax.transAxes + trans,
 					fontsize='large', va='bottom', weight="bold")
 
-	plt.savefig("images/simultaneous_updating_3d.tiff", format="tiff", dpi=300)
+	plt.savefig("images/simultaneous_updating_3d_new.png", format="png", dpi=300)
 
 	plt.show()
 

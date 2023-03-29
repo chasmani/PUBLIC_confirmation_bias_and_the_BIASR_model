@@ -909,7 +909,280 @@ def plot_all_simulations():
 	prob_H = 0.5
 	
 	plot_belief_perseverance(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R, different_source=True)
+
+
+def plot_redlawsk_replication():
+
+	prob_H = 0.8
+	prob_R = 0.5
+	prob_true_R = 0.75
+	prob_true_not_R = 0.35
+
+	fig = plt.figure()
+
+	ax1 = plt.subplot(121)
+
+	y1 = [78, 83]
+
+	plt.plot(range(2), y1, label="Online", color=COLOR_INDY)
+	plt.scatter(range(2), y1,  color=COLOR_INDY)
+
+
+	y2 = [78, 71]
+
+	plt.plot(range(2), y2, label="Memory", color=COLOR_RATIONAL, linestyle=LINESTYLE_RATIONAL)	
+	plt.scatter(range(2), y2, color=COLOR_RATIONAL, linestyle=LINESTYLE_RATIONAL)
+
+	plt.ylabel("Estimated Means of Ratings for Candidates")
+	plt.xlabel("No Incongruent Info         Incongruent Info")
+	plt.xticks([])
+	
+	plt.legend()
+
+	M = [0,0,0,0,0]
+
+	rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	indy_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	simple_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	rational_probs_history = [rational_joint_prob_matrix]
+	indy_probs_history = [indy_joint_prob_matrix]
+	simple_probs_history = [simple_joint_prob_matrix]
+
+	for X in M:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum(rational_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		rational_probs_history.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum(indy_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		indy_probs_history.append(indy_joint_prob_matrix)		
+
+		simple_joint_prob_matrix = get_simple_posterior_matrix_given_one_datum(simple_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		simple_probs_history.append(simple_joint_prob_matrix)		
+
+	ax2 = plt.subplot(122)
+
+	index_pos_h = 0
+
+	plt.ylabel("P(H|D)")
+	plt.xlabel("Observations, $D=[0,0,0,0,0]$")
+
+
+	indy_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in indy_probs_history]
+	plt.plot(range(len(M) + 1), indy_probs_h, label="BIASR", linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+	plt.scatter(range(len(M) + 1), indy_probs_h, color=COLOR_INDY, marker=MARKER_INDY)
+
+
+	rational_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in rational_probs_history]
+	plt.plot(range(len(M) + 1), rational_probs_h, label="Rational", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+	plt.scatter(range(len(M) + 1), rational_probs_h, color=COLOR_RATIONAL, marker=MARKER_RATIONAL)
+
+
+
+	axs = [ax1, ax2]
+	ax_labels = ["a", "b"]
+	for ax_index in range(2):
+		ax = axs[ax_index]
+		ax_label = ax_labels[ax_index]
+
+		# label physical distance to the left and up:
+		trans = mtransforms.ScaledTranslation(-20/72, 7/72, fig.dpi_scale_trans)
+		ax.text(0.0, 1.0, ax_label, transform=ax.transAxes + trans,
+				fontsize='large', va='bottom', weight="bold")
+
+	plt.xticks([])
+
+	plt.legend()
+
+	plt.tight_layout()
+	plt.savefig("images/redlawsk_replication.png")
+	plt.show()
+
+
+def get_joint_prob_matrix_d_given_h_carlson(X):
+	"""
+	For the carlson replication
+	"""
+
+	prob_D_given_H_R = [0.4, 0.4, 0.2]
+	prob_D_given_not_H_R = [0.5, 0.4, 0.1]
+	prob_D_given_H_not_R = [0.4, 0.5, 0.1]
+	prob_D_given_not_H_not_R = [0.45, 0.45, 0.1]
+
+	joint_prob_d_given_h = np.array([
+		[prob_D_given_H_R[X], prob_D_given_not_H_R[X]],
+		[prob_D_given_H_not_R[X], prob_D_given_not_H_not_R[X]]
+		])
+
+	return joint_prob_d_given_h
+
+
+def get_rational_posterior_matrix_given_one_datum_carlson(joint_prob_matrix, X):
+	"""
+	Get the posterior matrix given a fully rational updating of beliefs
+	For the Carlson replication only
+	"""
+	
+	joint_prob_d_given_h = get_joint_prob_matrix_d_given_h_carlson(X)
+	joint_prob_matrix = get_joint_posterior(joint_prob_matrix, joint_prob_d_given_h)
+	return joint_prob_matrix
+
+def get_indy_posterior_matrix_given_one_datum_carlson(joint_prob_matrix, X):
+	"""
+	Get the posterior matrix given an updating of beliefs with an independence approximation
+	"""
+	# Independence approximation applied
+	prob_H = joint_prob_matrix[0][0] + joint_prob_matrix[1][0]
+	prob_R = joint_prob_matrix[0][0] + joint_prob_matrix[0][1]
+
+	independent_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)	
+
+	joint_prob_d_given_h = get_joint_prob_matrix_d_given_h_carlson(X)
+	joint_prob_matrix = get_joint_posterior(independent_prob_matrix, joint_prob_d_given_h)
+
+	return joint_prob_matrix
+
+
+def plot_carlson_replication():
+
+	"""
+	D can be 0,1 or 2. 
+	The P(D|H,R) is given in the function get_joint_prob_matrix_d_given_h_carlson
+	You probabbly wan tto report taht as well in the figure. 
+	"""
+
+	fig_width, fig_height = plt.gcf().get_size_inches()
+
+	fig = plt.figure(figsize=(fig_width*2, fig_height), constrained_layout=True)
 	
 
+	prob_H = 0.5
+	prob_R = 0.5
+
+	rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	indy_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	rational_probs_history_M1 = [rational_joint_prob_matrix]
+	indy_probs_history_M1 = [indy_joint_prob_matrix]
+
+	M1 = [2,1,1,1,1,1]
+
+	for X in M1:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum_carlson(rational_joint_prob_matrix, X)
+		rational_probs_history_M1.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum_carlson(indy_joint_prob_matrix, X)
+		indy_probs_history_M1.append(indy_joint_prob_matrix)		
+
+
+	rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	indy_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	rational_probs_history_M2 = [rational_joint_prob_matrix]
+	indy_probs_history_M2 = [indy_joint_prob_matrix]
+
+	M2 = [1,1,1,2,1,1]
+
+	for X in M2:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum_carlson(rational_joint_prob_matrix, X)
+		rational_probs_history_M2.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum_carlson(indy_joint_prob_matrix, X)
+		indy_probs_history_M2.append(indy_joint_prob_matrix)		
+
+	index_pos_h = 0
+
+	# Indy condition
+	ax1 = plt.subplot(131)
+
+	indy_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in indy_probs_history_M1]
+	plt.plot(range(len(M1) + 1), indy_probs_h, label=r"BIASR $M_1$", linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+	plt.scatter(range(len(M1) + 1), indy_probs_h, color=COLOR_INDY, marker=MARKER_INDY)
+
+	indy_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in indy_probs_history_M2]
+	plt.plot(range(len(M1) + 1), indy_probs_h, label=r"BIASR $M_2$", linestyle=LINESTYLE_RATIONAL, color=COLOR_INDY)
+	plt.scatter(range(len(M1) + 1), indy_probs_h, color=COLOR_INDY, marker=MARKER_RATIONAL)
+
+	plt.ylabel("P(H = Good Restaurant)")
+
+	plt.xlabel("M")
+
+	plt.legend()
+
+	# Rational condition
+	ax2 = plt.subplot(132, sharey=ax1)
+
+	rational_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in rational_probs_history_M1]
+	plt.plot(range(len(M2) + 1), rational_probs_h, label=r"Rational $M_1$", linestyle=LINESTYLE_INDY, color=COLOR_RATIONAL)
+	plt.scatter(range(len(M2) + 1), rational_probs_h, color=COLOR_RATIONAL, marker=MARKER_INDY)
+
+	rational_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in rational_probs_history_M2]
+	plt.plot(range(len(M2) + 1), rational_probs_h, label=r"Rational $M_2$", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+	plt.scatter(range(len(M2) + 1), rational_probs_h, color=COLOR_RATIONAL, marker=MARKER_RATIONAL)
+
+	plt.xlabel("M")
+
+	
+
+	plt.legend()
+
+
+	ax3 = plt.subplot(133)
+
+	draw_table_carlson(ax3)
+
+
+	axs = [ax1, ax2, ax3]
+	ax_labels = ["a", "b"]
+	for ax_index in range(2):
+		ax = axs[ax_index]
+		ax_label = ax_labels[ax_index]
+
+		# label physical distance to the left and up:
+		trans = mtransforms.ScaledTranslation(-20/72, 7/72, fig.dpi_scale_trans)
+		ax.text(0.0, 1.0, ax_label, transform=ax.transAxes + trans,
+				fontsize='large', va='bottom', weight="bold")
+
+	ax3.text(0.0, 0.7, "c", transform=ax3.transAxes + trans,
+				fontsize='large', va='bottom', weight="bold")
+
+
+	ax3.text(0.3, 0.15, r"$M_1 = [2,1,1,1,1,1]$", transform=ax3.transAxes + trans,
+				fontsize='large', va='bottom')
+
+	ax3.text(0.3, 0.05, r"$M_2 = [1,1,1,2,1,1]$", transform=ax3.transAxes + trans,
+				fontsize='large', va='bottom')
+
+
+	plt.savefig("images/carlson_replication.png", dpi=300)
+
+	plt.show()
+
+
+def draw_table_carlson(ax):
+
+	table_data = [
+		[1,1,0.4, 0.4, 0.2],
+		[0,1,0.5, 0.4, 0.1],
+		[1,0,0.4, 0.5, 0.1],
+		[0,0,0.45, 0.45, 0.1],
+		]
+
+	collabel=("H", "R", "P(D=0)", "P(D=1)", "P(D=2)")
+	ax.axis('tight')
+	ax.axis('off')
+	the_table = ax.table(cellText=table_data,
+		colLabels=collabel,
+		cellLoc="center",
+		colLoc="center",
+		edges="closed",
+		loc='center')
+
+	the_table.set_fontsize(32)
+	the_table.scale(1.2, 1.5)
+
+
 if __name__=="__main__":
-	plot_all_simulations()
+	plot_carlson_replication()
