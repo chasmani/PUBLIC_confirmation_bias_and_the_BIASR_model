@@ -1183,6 +1183,144 @@ def draw_table_carlson(ax):
 	the_table.set_fontsize(32)
 	the_table.scale(1.2, 1.5)
 
+from matplotlib import gridspec
+
+def plot_belief_perseverance_separated(prob_H, prob_R, prob_true_R, prob_true_not_R, different_source=True):
+	"""
+	Some confirmatory data first, followed by disconfirmatory data from a different source
+	"""
+
+	fig = plt.figure(figsize=(6.5, 6.5)) 
+	gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1]) 
+	ax1 = plt.subplot(gs[0])
+
+	M1 = [1,1,1,1,1]
+
+	rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	indy_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	simple_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	rational_probs_history = [rational_joint_prob_matrix]
+	indy_probs_history = [indy_joint_prob_matrix]
+	simple_probs_history = [simple_joint_prob_matrix]
+
+	for X in M1:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum(rational_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		rational_probs_history.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum(indy_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		indy_probs_history.append(indy_joint_prob_matrix)		
+
+		simple_joint_prob_matrix = get_simple_posterior_matrix_given_one_datum(simple_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		simple_probs_history.append(simple_joint_prob_matrix)		
+
+
+	M2 = [0,0,0,0,0]
+
+	if different_source:
+		# New message source, with a new prior reliability of P(R)=0.5.
+		# 2nd message source is independent of 1st mesage source, so no problem to mkae marginals of H at this point 
+		rational_prob_H = rational_joint_prob_matrix[0][0] + rational_joint_prob_matrix[1][0]
+		rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, rational_prob_H)
+		
+		indy_prob_H = indy_joint_prob_matrix[0][0] + indy_joint_prob_matrix[1][0]
+		indy_joint_prob_matrix  = get_joint_prior_matrix(prob_R, indy_prob_H)
+
+		simple_prob_H = simple_joint_prob_matrix[0][0] + simple_joint_prob_matrix[1][0]
+		simple_joint_prob_matrix = get_joint_prior_matrix(prob_R, simple_prob_H)
+	
+
+	for X in M2:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum(rational_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		rational_probs_history.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum(indy_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		indy_probs_history.append(indy_joint_prob_matrix)		
+
+		simple_joint_prob_matrix = get_simple_posterior_matrix_given_one_datum(simple_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		simple_probs_history.append(simple_joint_prob_matrix)		
+
+	plt.ylabel("P(H|D)")
+
+	index_pos_h = 0
+
+	simple_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in simple_probs_history]
+	#plt.plot(range(len(M1) + len(M2) + 1), simple_probs_h, label="Simple", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE)
+	plt.plot(range(6), simple_probs_h[:6], label="Simple", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE)
+	plt.plot(range(6,12), simple_probs_h[5:], linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE)
+
+	plt.scatter(range(6), simple_probs_h[:6], color=COLOR_SIMPLE, marker=MARKER_SIMPLE)
+	plt.scatter(range(6,12), simple_probs_h[5:], color=COLOR_SIMPLE, marker=MARKER_SIMPLE)	
+
+
+	rational_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in rational_probs_history]
+	#plt.plot(range(len(M1) + len(M2) + 1), rational_probs_h, label="Rational", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+	#plt.scatter(range(len(M1) + len(M2) + 1), rational_probs_h, color=COLOR_RATIONAL, marker=MARKER_RATIONAL)
+	plt.plot(range(6), rational_probs_h[:6], label="Rational", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+	plt.plot(range(6,12), rational_probs_h[5:], linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+
+	plt.scatter(range(6), rational_probs_h[:6], color=COLOR_RATIONAL, marker=MARKER_RATIONAL)
+	plt.scatter(range(6,12), rational_probs_h[5:], color=COLOR_RATIONAL, marker=MARKER_RATIONAL)	
+
+	indy_probs_h = [np.sum(prob_matrix, axis=0)[index_pos_h] for prob_matrix in indy_probs_history]
+	#plt.plot(range(len(M1) + len(M2) + 1), indy_probs_h, label="BIASR", linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+	#plt.scatter(range(len(M1) + len(M2) + 1), indy_probs_h, color=COLOR_INDY, marker=MARKER_INDY)
+
+	plt.plot(range(6), indy_probs_h[:6], label="BIASR", linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+	plt.plot(range(6,12), indy_probs_h[5:], linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+
+	plt.scatter(range(6), indy_probs_h[:6], color=COLOR_INDY, marker=MARKER_INDY)
+	plt.scatter(range(6,12), indy_probs_h[5:], color=COLOR_INDY, marker=MARKER_INDY)	
+
+	plt.grid(axis="y")
+	plt.legend()
+
+
+	ax2 = plt.subplot(gs[1])
+
+
+
+	simple_probs_r = [np.sum(prob_matrix, axis=1)[0] for prob_matrix in simple_probs_history]
+	plt.plot(range(6), simple_probs_r[:6], label="Simple", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE)
+	plt.plot(range(6,12), [0.5] + simple_probs_r[6:], linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE)
+
+	plt.scatter(range(6), simple_probs_r[:6], color=COLOR_SIMPLE, marker=MARKER_SIMPLE)
+	plt.scatter(range(6,12), [0.5] + simple_probs_r[6:], color=COLOR_SIMPLE, marker=MARKER_SIMPLE)	
+
+
+
+	rational_probs_r = [np.sum(prob_matrix, axis=1)[0] for prob_matrix in rational_probs_history]
+	plt.plot(range(6), rational_probs_r[:6], label="Rational", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+	plt.plot(range(6,12), [0.5] + rational_probs_r[6:], linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL)
+
+	plt.scatter(range(6), rational_probs_r[:6], color=COLOR_RATIONAL, marker=MARKER_RATIONAL)
+	plt.scatter(range(6,12), [0.5] + rational_probs_r[6:], color=COLOR_RATIONAL, marker=MARKER_RATIONAL)
+
+	indy_probs_r = [np.sum(prob_matrix, axis=1)[0] for prob_matrix in indy_probs_history]
+
+	plt.plot(range(6), indy_probs_r[:6], label="BIASR", linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+	plt.plot(range(6,12), [0.5]+indy_probs_r[6:], linestyle=LINESTYLE_INDY, color=COLOR_INDY)
+
+	plt.scatter(range(6), indy_probs_r[:6], color=COLOR_INDY, marker=MARKER_INDY)
+	plt.scatter(range(6,12), [0.5] + indy_probs_r[6:], color=COLOR_INDY, marker=MARKER_INDY)
+
+
+
+	plt.grid(axis="y")
+
+	plt.ylabel("P(R|D)")
+
+	plt.xlabel("Source 1 $D={} \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  $ Source 2 $D'={}$".format(M1, M2))
+	
+	
+	plt.tight_layout()
+	plt.savefig("images/belief_perseverance_different_source_separated_{}.png".format(different_source))
+	plt.show()
+
+
+
 
 if __name__=="__main__":
-	plot_carlson_replication()
+	plot_belief_perseverance_separated(prob_H = 0.5, prob_R = 0.5, prob_true_R=0.75, prob_true_not_R=0.5)
