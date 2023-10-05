@@ -51,7 +51,7 @@ def draw_arrow_with_text(text=r"$P(H,R|D)$"):
 	    xytext=(0.1, 0.45), textcoords="data",
 	    arrowprops=dict(
 			arrowstyle="-|>", 
-		     lw=6, 
+		     lw=4, 
 		     connectionstyle="arc3",
 			 color="#404040"
 			 ),

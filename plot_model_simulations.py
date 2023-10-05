@@ -1184,5 +1184,212 @@ def draw_table_carlson(ax):
 	the_table.scale(1.2, 1.5)
 
 
+def get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_prob_matrix):
+	"""
+	See SI for derivation
+	"""
+	
+	information_gain = 0
+
+	prob_R = joint_prob_matrix[0][0] + joint_prob_matrix[0][1]
+
+	prob_H = 0.8
+	joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	
+	entropy_H = - prob_H * np.log(prob_H) - (1 - prob_H) * np.log(1 - prob_H)
+	print(entropy_H)
+
+	information_gain = entropy_H
+
+	for D in [0, 1]:
+		
+		likelihoods = get_joint_prob_matrix_d_given_h(prob_true_R = prob_true_R, prob_true_not_R = prob_true_not_R, X=D)
+		unnormed_posterior = np.multiply(joint_prob_matrix, likelihoods)
+		prob_d_i = np.sum(unnormed_posterior)
+		
+		joint_posterior = unnormed_posterior/np.sum(unnormed_posterior)
+
+		prob_H_given_d_i = joint_posterior[0][0] + joint_posterior[1][0]
+
+		entropy_H_given_d_i = - prob_H_given_d_i * np.log(prob_H_given_d_i) - (1 - prob_H_given_d_i) * np.log(1 - prob_H_given_d_i)
+
+		information_gain -= prob_d_i * entropy_H_given_d_i
+
+	print(information_gain)
+	return information_gain
+
+
+def plot_selection_sources_with_information_gain(prob_H, prob_R, prob_true_R, prob_true_not_R,):
+	"""
+	Compute diagnosticity of two sources, one for and one against
+	"""
+
+	fig = plt.figure()
+
+
+	M1 = [1,1,1,1,1]
+
+	rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	indy_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	simple_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	rational_probs_history = [rational_joint_prob_matrix]
+	indy_probs_history = [indy_joint_prob_matrix]
+	simple_probs_history = [simple_joint_prob_matrix]
+
+	for X in M1:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum(rational_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		rational_probs_history.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum(indy_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		indy_probs_history.append(indy_joint_prob_matrix)		
+
+		simple_joint_prob_matrix = get_simple_posterior_matrix_given_one_datum(simple_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		simple_probs_history.append(simple_joint_prob_matrix)		
+
+	rational_diagnosticity_history_confirmatory = [get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_probs) for joint_probs in rational_probs_history]
+	indy_diagnosticity_history_confirmatory = [get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_probs) for joint_probs in indy_probs_history]
+	simple_diagnosticity_history_confirmatory = [get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_probs) for joint_probs in simple_probs_history]
+
+
+	M2 = [0,0,0,0,0]
+
+	rational_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	indy_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+	simple_joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	rational_probs_history = [rational_joint_prob_matrix]
+	indy_probs_history = [indy_joint_prob_matrix]
+	simple_probs_history = [simple_joint_prob_matrix]
+
+	for X in M2:
+		
+		rational_joint_prob_matrix = get_rational_posterior_matrix_given_one_datum(rational_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		rational_probs_history.append(rational_joint_prob_matrix)
+
+		indy_joint_prob_matrix = get_indy_posterior_matrix_given_one_datum(indy_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		indy_probs_history.append(indy_joint_prob_matrix)		
+
+		simple_joint_prob_matrix = get_simple_posterior_matrix_given_one_datum(simple_joint_prob_matrix, prob_true_R, prob_true_not_R, X)
+		simple_probs_history.append(simple_joint_prob_matrix)		
+
+
+	rational_diagnosticity_history_disconfirmatory = [get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_probs) for joint_probs in rational_probs_history]
+	indy_diagnosticity_history_disconfirmatory = [get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_probs) for joint_probs in indy_probs_history]
+	simple_diagnosticity_history_disconfirmatory = [get_expected_information_gain_of_source(prob_true_R, prob_true_not_R, joint_probs) for joint_probs in simple_probs_history]
+
+
+	ax1 = plt.subplot(231)
+
+	plt.plot(range(6), simple_diagnosticity_history_confirmatory, label=r"$D_{for}$", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE, linewidth=LINEWIDTH_FOR)
+	plt.plot(range(6), simple_diagnosticity_history_disconfirmatory, label=r"$D_{against}$", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE, linewidth=LINEWIDTH_AGAINST)
+
+	plt.scatter(range(6), simple_diagnosticity_history_confirmatory, marker=MARKER_SIMPLE, color=COLOR_SIMPLE, s=SIZE_SOURCES)
+	plt.scatter(range(6), simple_diagnosticity_history_disconfirmatory, marker=MARKER_SIMPLE, color=COLOR_SIMPLE, s=SIZE_SOURCES)
+
+
+	plt.ylabel("Source Diagnosticity")
+
+	plt.xlabel("Observations")
+
+	plt.title("Simple")
+
+	plt.legend(prop={'size': 8})
+
+
+	ax2 = plt.subplot(232, sharey=ax1)
+
+	plt.plot(range(6), rational_diagnosticity_history_confirmatory, label=r"$D_{for}$", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL, linewidth=LINEWIDTH_FOR)
+	plt.plot(range(6), rational_diagnosticity_history_disconfirmatory, label=r"$D_{against}$", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL, linewidth=LINEWIDTH_AGAINST)
+	plt.scatter(range(6), rational_diagnosticity_history_confirmatory, marker=MARKER_RATIONAL, color=COLOR_RATIONAL, s=SIZE_SOURCES)
+	plt.scatter(range(6), rational_diagnosticity_history_disconfirmatory, marker=MARKER_RATIONAL, color=COLOR_RATIONAL, s=SIZE_SOURCES)
+
+	plt.xlabel("Observations")
+
+	plt.legend(prop={'size': 8})
+
+	plt.title("Rational")
+
+	ax3 = plt.subplot(233, sharey=ax1)
+
+	plt.plot(range(6), indy_diagnosticity_history_confirmatory, label=r"$D_{for}$", linestyle=LINESTYLE_INDY, color=COLOR_INDY, linewidth=LINEWIDTH_FOR)
+	plt.plot(range(6), indy_diagnosticity_history_disconfirmatory, label=r"$D_{against}$", linestyle=LINESTYLE_INDY, color=COLOR_INDY, linewidth=LINEWIDTH_AGAINST)
+
+	plt.scatter(range(6), indy_diagnosticity_history_confirmatory, marker=MARKER_INDY, color=COLOR_INDY, s=SIZE_SOURCES)
+	plt.scatter(range(6), indy_diagnosticity_history_disconfirmatory, marker=MARKER_INDY, color=COLOR_INDY, s=SIZE_SOURCES)
+
+
+	plt.xlabel("Observations")
+
+	plt.title("BIASR")
+
+	plt.legend(prop={'size': 8})
+
+
+	ax4 = plt.subplot(212)
+
+	indy_ratio = np.array(indy_diagnosticity_history_confirmatory)/np.array(indy_diagnosticity_history_disconfirmatory)
+	rational_ratio = np.array(rational_diagnosticity_history_confirmatory)/np.array(rational_diagnosticity_history_disconfirmatory)
+	simple_ratio = np.array(simple_diagnosticity_history_confirmatory)/np.array(simple_diagnosticity_history_disconfirmatory)
+
+	plt.plot(range(6), simple_ratio, label=r"Simple", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE, linewidth=2)
+	plt.scatter(range(6), simple_ratio, marker=MARKER_SIMPLE, color=COLOR_SIMPLE)
+
+	plt.plot(range(6), rational_ratio, label=r"Rational", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL, linewidth=2)
+	plt.scatter(range(6), rational_ratio, marker=MARKER_RATIONAL, color=COLOR_RATIONAL)
+
+
+	plt.plot(range(6), indy_ratio, label=r"BIASR", linestyle=LINESTYLE_INDY, color=COLOR_INDY, linewidth=2)
+	plt.scatter(range(6), indy_ratio, marker=MARKER_INDY, color=COLOR_INDY)
+
+	plt.legend()
+
+	
+	plt.xlabel("Observations, $D_{for}=[1,1,1,1,1]$, $D_{against}=[0,0,0,0,0]$")
+	plt.ylabel("Diagnosticity Ratio (for/against)")
+
+	axs = [ax1, ax2, ax3, ax4]
+	ax_labels = ["a", "b", "c", "d"]
+	for ax_index in range(4):
+		ax = axs[ax_index]
+		ax_label = ax_labels[ax_index]
+
+		# label physical distance to the left and up:
+		trans = mtransforms.ScaledTranslation(-20/72, 7/72, fig.dpi_scale_trans)
+		ax.text(0.0, 1.0, ax_label, transform=ax.transAxes + trans,
+				fontsize='large', va='bottom', weight="bold")
+
+	plt.tight_layout()
+
+	#plt.savefig("images/confirmation_bias_selection_sources_with_information_gain.png")
+
+	plt.show()
+
+
+
+
+def test_information_gain():
+
+	prob_R = 0.8
+	prob_H = 0.8
+	joint_prob_matrix = get_joint_prior_matrix(prob_R, prob_H)
+
+	diag = get_diagnosticity_of_question(prob_true_R=0.75, prob_true_not_R=0.5, joint_prob_matrix=joint_prob_matrix)
+	print("Diag is ", diag)
+
+	information = get_expected_information_gain_of_source(prob_true_R=0.75, prob_true_not_R=0.5, joint_prob_matrix=joint_prob_matrix)
+	print("Info is ", information)
+
 if __name__=="__main__":
-	plot_carlson_replication()
+
+	test_information_gain()
+
+	
+	prob_H = 0.8	
+	prob_R = 0.5
+	prob_true_R = 0.75
+	prob_true_not_R = 0.5
+
+	plot_selection_sources_with_information_gain(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R)
+	
