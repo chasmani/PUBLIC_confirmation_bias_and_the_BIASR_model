@@ -110,8 +110,6 @@ def replicate_biased_evaluation_and_assimilation():
 	indy_joint_prob = get_joint_prior_two_sources(prob_H, prob_R, prob_R)
 	simple_joint_prob = get_joint_prior_two_sources(prob_H, prob_R, prob_R)
 
-
-
 	Ds = [1,1,1,1,1]
 	
 	print(np.sum(rational_joint_prob, axis=2))
@@ -137,6 +135,12 @@ def replicate_biased_evaluation_and_assimilation():
 		joint_prob_H_R_simple = np.sum(simple_joint_prob, axis=2)
 		print("Simple")
 		print(joint_prob_H_R_simple)		
+
+
+
+def update_with_for_and_against():
+
+	pass
 
 
 
