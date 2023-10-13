@@ -5,6 +5,25 @@ import numpy as np
 PROB_TRUE_R = 0.75
 PROB_TRUE_NOT_R = 0.5
 
+import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
+
+
+COLOR_INDY = "#2980b9"
+COLOR_RATIONAL = "#e67e22"
+COLOR_SIMPLE = "#6ab04c"
+MARKER_INDY = "o"
+MARKER_RATIONAL = "s"
+MARKER_SIMPLE = "x"
+LINESTYLE_INDY = "solid"
+LINESTYLE_SIMPLE = "dashed"
+LINESTYLE_RATIONAL = "dotted"
+
+LINEWIDTH_FOR = 2
+LINEWIDTH_AGAINST = 1
+
+SIZE_SOURCES = 10
+
 
 def get_joint_prior_two_sources(prior_H, prior_R_a, prior_R_b):
 
@@ -79,6 +98,10 @@ def get_unnormed_posterior_rational(prior, D, source):
 	likelihood = get_likelihood_tensor(D=D, D_from=source)
 	return np.multiply(prior, likelihood)
 
+def get_prob_D_rational(prior, D, source):
+	
+	unnormed_posterior = get_unnormed_posterior_rational(prior, D, source)
+	return np.sum(unnormed_posterior)
 
 def get_posterior_indy(prior, D, source):
 
@@ -98,6 +121,11 @@ def get_unnormed_posterior_indy(prior, D, source):
 
 	return np.multiply(prior, likelihood)
 
+def get_prob_D_indy(prior, D, source):
+	
+	unnormed_posterior = get_unnormed_posterior_indy(prior, D, source)
+	return np.sum(unnormed_posterior)
+
 def get_posterior_simple(prior, D, prob_R):
 
 	unnormed_posterior = get_unnormed_posterior_simple(prior, D, prob_R)
@@ -109,9 +137,9 @@ def get_unnormed_posterior_simple(prior, D, prob_R):
 	# Get prob_H and prob_Rs
 	return np.multiply(prior, likelihood)
 
-def get_prob_D(D, prior, likelihood):
-
-	unnormed_posterior = np.multiply(prior, likelihood)
+def get_prob_D_simple(prior, D, prob_R):
+	
+	unnormed_posterior = get_unnormed_posterior_simple(prior, D, prob_R)
 	return np.sum(unnormed_posterior)
 
 def replicate_biased_evaluation_and_assimilation():
@@ -151,14 +179,179 @@ def replicate_biased_evaluation_and_assimilation():
 		print(joint_prob_H_R_simple)		
 
 
+def get_entropy(joint_prob_dist):
 
-def update_with_for_and_against():
+	prob_H = np.sum(joint_prob_dist, axis=(1,2))
 
-	pass
+	entropy = 0
+	for H in [0,1]:
+		if prob_H[H] != 0:
+			entropy += - prob_H[H] * np.log(prob_H[H])
+	return entropy
+
+
+def get_expected_information_gain(joint_prob_dist, update_type="rational", source="A"):
+
+	current_entropy = get_entropy(joint_prob_dist)
+
+	expected_entropy = 0
+	
+	prob_R = 0.5
+
+	for D in [0,1]:
+		if update_type == "rational":
+			prob_D = get_prob_D_rational(joint_prob_dist, D, source)
+			posterior_given_D = get_posterior_rational(joint_prob_dist, D, source)
+			entropy_given_D = get_entropy(posterior_given_D)
+			expected_entropy += prob_D * entropy_given_D
+		elif update_type == "indy":
+			prob_D = get_prob_D_indy(joint_prob_dist, D, source)
+			posterior_given_D = get_posterior_indy(joint_prob_dist, D, source)
+			entropy_given_D = get_entropy(posterior_given_D)
+			expected_entropy += prob_D * entropy_given_D
+		elif update_type == "simple":
+			prob_D = get_prob_D_simple(joint_prob_dist, D, prob_R=prob_R)
+			posterior_given_D = get_posterior_simple(joint_prob_dist, D=D, prob_R=prob_R)
+			entropy_given_D = get_entropy(posterior_given_D)
+			expected_entropy += prob_D * entropy_given_D
+
+	return current_entropy - expected_entropy
+
+
+def plot_selection_sources_with_information_gain(prob_H=0.75, prob_R=0.5):
+	"""
+	Compute diagnosticity of two sources, one for and one against
+	"""
+
+	fig = plt.figure()
+
+	M = [1,0] * 5
+	sources = ["A", "B"] * 5
+
+	rational_joint_prob = get_joint_prior_two_sources(prob_H, prob_R, prob_R)
+	indy_joint_prob = get_joint_prior_two_sources(prob_H, prob_R, prob_R)
+	simple_joint_prob = get_joint_prior_two_sources(prob_H, prob_R, prob_R)
+
+	for_rational_information_gain = [get_expected_information_gain(rational_joint_prob, update_type="rational", source="A")]
+	against_rational_information_gain = [get_expected_information_gain(rational_joint_prob, update_type="rational", source="B")]
+	for_indy_information_gain = [get_expected_information_gain(indy_joint_prob, update_type="indy", source="A")]
+	against_indy_information_gain = [get_expected_information_gain(indy_joint_prob, update_type="indy", source="B")]
+	for_simple_information_gain = [get_expected_information_gain(simple_joint_prob, update_type="simple", source="A")]
+	against_simple_information_gain = [get_expected_information_gain(simple_joint_prob, update_type="simple", source="B")]
+
+	for message_i in range(len(M)):
+
+		D = M[message_i]
+		source = sources[message_i]
+		
+		rational_joint_prob = get_posterior_rational(rational_joint_prob, D, source=source)
+
+		indy_joint_prob = get_posterior_indy(indy_joint_prob, D, source=source)
+
+		simple_joint_prob = get_posterior_simple(simple_joint_prob, D=D, prob_R=prob_R)
+
+		if message_i % 1 == 0:
+			for_rational_information_gain.append(get_expected_information_gain(rational_joint_prob, update_type="rational", source="A"))
+			against_rational_information_gain.append(get_expected_information_gain(rational_joint_prob, update_type="rational", source="B"))
+
+			for_indy_information_gain.append(get_expected_information_gain(indy_joint_prob, update_type="indy", source="A"))
+			against_indy_information_gain.append(get_expected_information_gain(indy_joint_prob, update_type="indy", source="B"))
+
+			for_simple_information_gain.append(get_expected_information_gain(simple_joint_prob, update_type="simple", source="A"))
+			against_simple_information_gain.append(get_expected_information_gain(simple_joint_prob, update_type="simple", source="B"))
+
+	ax1 = plt.subplot(231)
+
+	plt.plot(range(11), for_simple_information_gain, label=r"$D_{for}$", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE, linewidth=LINEWIDTH_FOR)
+	plt.plot(range(11), against_simple_information_gain, label=r"$D_{against}$", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE, linewidth=LINEWIDTH_AGAINST)
+
+	plt.scatter(range(11), for_simple_information_gain, marker=MARKER_SIMPLE, color=COLOR_SIMPLE, s=SIZE_SOURCES)
+	plt.scatter(range(11), against_simple_information_gain, marker=MARKER_SIMPLE, color=COLOR_SIMPLE, s=SIZE_SOURCES)
+
+	plt.ylabel("Expected Infoormation Gain")
+	plt.xlabel("Observations")
+
+	plt.title("Simple")
+
+	plt.legend(prop={'size': 8})
+
+
+	ax2 = plt.subplot(232, sharey=ax1)
+
+	plt.plot(range(11), for_rational_information_gain, label=r"$D_{for}$", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL, linewidth=LINEWIDTH_FOR)
+	plt.plot(range(11), against_rational_information_gain, label=r"$D_{against}$", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL, linewidth=LINEWIDTH_AGAINST)
+
+	plt.scatter(range(11), for_rational_information_gain, marker=MARKER_RATIONAL, color=COLOR_RATIONAL, s=SIZE_SOURCES)
+	plt.scatter(range(11), against_rational_information_gain, marker=MARKER_RATIONAL, color=COLOR_RATIONAL, s=SIZE_SOURCES)
+
+	plt.xlabel("Observations")
+
+	plt.title("Rational")
+
+	plt.legend(prop={'size': 8})
+
+	ax3 = plt.subplot(233, sharey=ax1)
+
+	plt.plot(range(11), for_indy_information_gain, label=r"$D_{for}$", linestyle=LINESTYLE_INDY, color=COLOR_INDY, linewidth=LINEWIDTH_FOR)
+	plt.plot(range(11), against_indy_information_gain, label=r"$D_{against}$", linestyle=LINESTYLE_INDY, color=COLOR_INDY, linewidth=LINEWIDTH_AGAINST)
+
+	plt.scatter(range(11), for_indy_information_gain, marker=MARKER_INDY, color=COLOR_INDY, s=SIZE_SOURCES)
+	plt.scatter(range(11), against_indy_information_gain, marker=MARKER_INDY, color=COLOR_INDY, s=SIZE_SOURCES)
+
+	plt.xlabel("Observations")
+
+	plt.title("BIASR")
+
+	plt.legend(prop={'size': 8})
+
+
+	"""
+	ax4 = plt.subplot(212)
+
+	indy_ratio = np.array(indy_diagnosticity_history_confirmatory)/np.array(indy_diagnosticity_history_disconfirmatory)
+	rational_ratio = np.array(rational_diagnosticity_history_confirmatory)/np.array(rational_diagnosticity_history_disconfirmatory)
+	simple_ratio = np.array(simple_diagnosticity_history_confirmatory)/np.array(simple_diagnosticity_history_disconfirmatory)
+
+	plt.plot(range(6), simple_ratio, label=r"Simple", linestyle=LINESTYLE_SIMPLE, color=COLOR_SIMPLE, linewidth=2)
+	plt.scatter(range(6), simple_ratio, marker=MARKER_SIMPLE, color=COLOR_SIMPLE)
+
+	plt.plot(range(6), rational_ratio, label=r"Rational", linestyle=LINESTYLE_RATIONAL, color=COLOR_RATIONAL, linewidth=2)
+	plt.scatter(range(6), rational_ratio, marker=MARKER_RATIONAL, color=COLOR_RATIONAL)
+
+
+	plt.plot(range(6), indy_ratio, label=r"BIASR", linestyle=LINESTYLE_INDY, color=COLOR_INDY, linewidth=2)
+	plt.scatter(range(6), indy_ratio, marker=MARKER_INDY, color=COLOR_INDY)
+
+	plt.legend()
+
+	
+	plt.xlabel("Observations, $D_{for}=[1,1,1,1,1]$, $D_{against}=[0,0,0,0,0]$")
+	plt.ylabel("Diagnosticity Ratio (for/against)")
+
+	axs = [ax1, ax2, ax3, ax4]
+	ax_labels = ["a", "b", "c", "d"]
+	for ax_index in range(4):
+		ax = axs[ax_index]
+		ax_label = ax_labels[ax_index]
+
+		# label physical distance to the left and up:
+		trans = mtransforms.ScaledTranslation(-20/72, 7/72, fig.dpi_scale_trans)
+		ax.text(0.0, 1.0, ax_label, transform=ax.transAxes + trans,
+				fontsize='large', va='bottom', weight="bold")
+
+
+	"""
+	plt.tight_layout()
+
+	#plt.savefig("images/confirmation_bias_selection_sources_with_information_gain.png")
+
+	plt.show()
+
+
 
 
 
 
 if __name__=="__main__":
 	#print(get_joint_prior_two_sources(0.5, 0.2,0.8))
-	replicate_biased_evaluation_and_assimilation()
+	plot_selection_sources_with_information_gain()
