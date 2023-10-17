@@ -247,6 +247,8 @@ def plot_selection_sources_with_information_gain(prob_H=0.75, prob_R=0.5):
 		rational_joint_prob = get_posterior_rational(rational_joint_prob, D, source=source)
 
 		indy_joint_prob = get_posterior_indy(indy_joint_prob, D, source=source)
+		print(indy_joint_prob)
+		print(np.sum(indy_joint_prob, axis=(0,1)))
 
 		simple_joint_prob = get_posterior_simple(simple_joint_prob, D=D, prob_R=prob_R)
 
