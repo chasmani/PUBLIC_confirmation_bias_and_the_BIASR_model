@@ -1534,7 +1534,7 @@ if __name__=="__main__":
 	prob_true_R = 0.75
 	prob_true_not_R = 0.5
 
-	plot_biased_assimilation_and_evaluation(prob_H, prob_R, prob_true_R, prob_true_not_R)
+	#plot_biased_assimilation_and_evaluation(prob_H, prob_R, prob_true_R, prob_true_not_R)
 
-	#plot_selection_sources_with_information_gain(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R)
+	plot_selection_sources(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R)
 	
