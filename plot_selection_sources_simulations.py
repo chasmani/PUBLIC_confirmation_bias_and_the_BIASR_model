@@ -218,7 +218,7 @@ def get_expected_information_gain(joint_prob_dist, update_type="rational", sourc
 	return current_entropy - expected_entropy
 
 
-def plot_selection_sources_with_information_gain(prob_H=0.75, prob_R=0.5):
+def plot_selection_sources_with_information_gain(prob_H=0.51, prob_R=0.6):
 	"""
 	Compute exected information gain of two sources, one for and one against
 	"""

@@ -98,13 +98,18 @@ def get_simple_posterior_matrix_given_one_datum(joint_prob_matrix, prob_true_R, 
 	prob_R = np.sum(joint_prob_matrix, axis=1)
 	prob_R_norm = prob_R/np.sum(prob_R)
 
+	print(prob_H_norm, prob_R_norm)
+
+	print(prob_true_R + prob_true_not_R)
+
 	# Prob D given H only
 	if X == 1:
-		joint_prob_d_given_h = np.array([(prob_true_not_R+prob_true_R)*prob_R_norm[0], 1-(prob_true_not_R+prob_true_R)*prob_R_norm[1]])
+		joint_prob_d_given_h = np.array([(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[0], 1-(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[1]])
 	if X == 0:
-		joint_prob_d_given_h = np.array([1-(prob_true_not_R+prob_true_R)*prob_R_norm[1], (prob_true_not_R+prob_true_R)*prob_R_norm[0]])
+		joint_prob_d_given_h = np.array([1-(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[1], (prob_true_not_R+prob_true_R)*0.5*prob_R_norm[0]])
 
 	prob_d_given_h = prob_H_norm * joint_prob_d_given_h
+	print("Prob d given h", prob_d_given_h)
 	prob_d_given_h_norm = prob_d_given_h/np.sum(prob_d_given_h)
 
 	# Convert back to joint matrix form, to match the foramt of the other models
@@ -697,7 +702,7 @@ def plot_selection_sources(prob_H, prob_R, prob_true_R, prob_true_not_R,):
 	plt.show()
 
 
-def plot_biased_assimilation_and_evaluation_joint_distribution(prob_H, prob_R, prob_true_R, prob_true_not_R, M=[0,0,0,0,0]):
+def plot_biased_assimilation_and_evaluation_joint_distribution(prob_H, prob_R, prob_true_R, prob_true_not_R, M=[1,1,1,1,1]):
 
 	fig_width, fig_height = plt.gcf().get_size_inches()
 
@@ -1529,12 +1534,12 @@ def test_information_gain():
 if __name__=="__main__":
 
 	
-	prob_H = 0.8	
-	prob_R = 0.5
+	prob_H = 0.55	
+	prob_R = 0.1
 	prob_true_R = 0.75
 	prob_true_not_R = 0.5
 
-	#plot_biased_assimilation_and_evaluation(prob_H, prob_R, prob_true_R, prob_true_not_R)
+	plot_biased_assimilation_and_evaluation_joint_distribution(prob_H, prob_R, prob_true_R, prob_true_not_R)
 
-	plot_selection_sources(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R)
+	#plot_selection_sources(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R)
 	
