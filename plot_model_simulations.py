@@ -98,18 +98,18 @@ def get_simple_posterior_matrix_given_one_datum(joint_prob_matrix, prob_true_R, 
 	prob_R = np.sum(joint_prob_matrix, axis=1)
 	prob_R_norm = prob_R/np.sum(prob_R)
 
-	print(prob_H_norm, prob_R_norm)
-
-	print(prob_true_R + prob_true_not_R)
-
 	# Prob D given H only
 	if X == 1:
-		joint_prob_d_given_h = np.array([(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[0], 1-(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[1]])
+		#joint_prob_d_given_h = np.array([(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[0], 1-(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[1]])
+		prob_d_given_h = prob_true_R * prob_R_norm[0] + prob_true_not_R * prob_R_norm[1]
+		prob_d_given_not_h = (1-prob_true_R)*prob_R_norm[0] + (1-prob_true_not_R)*prob_R_norm[1]
+		joint_prob_d_given_h = np.array([prob_d_given_h, prob_d_given_not_h])
 	if X == 0:
-		joint_prob_d_given_h = np.array([1-(prob_true_not_R+prob_true_R)*0.5*prob_R_norm[1], (prob_true_not_R+prob_true_R)*0.5*prob_R_norm[0]])
+		prob_d_given_h = (1-prob_true_R)*prob_R_norm[0] + (1-prob_true_not_R)*prob_R_norm[1]
+		prob_d_given_not_h = prob_true_R * prob_R_norm[0] + prob_true_not_R * prob_R_norm[1]
+		joint_prob_d_given_h = np.array([prob_d_given_h, prob_d_given_not_h])
 
 	prob_d_given_h = prob_H_norm * joint_prob_d_given_h
-	print("Prob d given h", prob_d_given_h)
 	prob_d_given_h_norm = prob_d_given_h/np.sum(prob_d_given_h)
 
 	# Convert back to joint matrix form, to match the foramt of the other models
@@ -269,7 +269,7 @@ def plot_biased_assimilation_and_evaluation(prob_H, prob_R, prob_true_R, prob_tr
 				fontsize='large', va='bottom', weight="bold")
 
 	plt.tight_layout()
-	plt.savefig("images/biased_evaluation_and_assimilation.png")
+	plt.savefig("images/biased_evaluation_and_assimilation.png", dpi=300)
 	plt.show()
 
 
@@ -349,7 +349,7 @@ def plot_belief_perseverance(prob_H, prob_R, prob_true_R, prob_true_not_R, diffe
 	plt.grid(axis="y")
 	plt.legend()
 	plt.tight_layout()
-	plt.savefig("images/belief_perseverance_different_source_{}.png".format(different_source))
+	plt.savefig("images/belief_perseverance_different_source_{}.png".format(different_source), dpi=300)
 	plt.show()
 
 
@@ -508,7 +508,7 @@ def plot_attitude_polarisation(prob_H, prob_R, prob_true_R, prob_true_not_R, dif
 
 	plt.legend()
 	plt.tight_layout()
-	plt.savefig("images/attitude_polarisation.png")
+	plt.savefig("images/attitude_polarisation.png", dpi=300)
 
 	plt.show()
 
@@ -697,7 +697,7 @@ def plot_selection_sources(prob_H, prob_R, prob_true_R, prob_true_not_R,):
 
 	plt.tight_layout()
 
-	plt.savefig("images/confirmation_bias_selection_sources.png")
+	plt.savefig("images/confirmation_bias_selection_sources.png", dpi=300)
 
 	plt.show()
 
@@ -898,7 +898,7 @@ def plot_biased_assimilation_and_evaluation_joint_distribution(prob_H, prob_R, p
 
 	plt.tight_layout()
 	plt.legend(bbox_to_anchor=(1.3,1), loc="upper left")
-	plt.savefig("images/joint_probs_updating_{}.png".format(M).replace(" ", "_").replace(",",""))
+	plt.savefig("images/joint_probs_updating_{}.png".format(M).replace(" ", "_").replace(",",""), dpi=300)
 
 	plt.show()
 
@@ -1007,7 +1007,7 @@ def plot_redlawsk_replication():
 	plt.legend()
 
 	plt.tight_layout()
-	plt.savefig("images/redlawsk_replication.png")
+	plt.savefig("images/redlawsk_replication.png", dpi=300)
 	plt.show()
 
 
@@ -1328,7 +1328,7 @@ def plot_belief_perseverance_separated(prob_H, prob_R, prob_true_R, prob_true_no
 	
 	
 	plt.tight_layout()
-	plt.savefig("images/belief_perseverance_different_source_separated_{}.png".format(different_source))
+	plt.savefig("images/belief_perseverance_different_source_separated_{}.png".format(different_source), dpi=300)
 	plt.show()
 
 
@@ -1534,12 +1534,6 @@ def test_information_gain():
 if __name__=="__main__":
 
 	
-	prob_H = 0.55	
-	prob_R = 0.1
-	prob_true_R = 0.75
-	prob_true_not_R = 0.5
-
-	plot_biased_assimilation_and_evaluation_joint_distribution(prob_H, prob_R, prob_true_R, prob_true_not_R)
-
-	#plot_selection_sources(prob_H=prob_H, prob_R=prob_R, prob_true_R=prob_true_R, prob_true_not_R=prob_true_not_R)
-	
+	#plot_all_simulations()
+	plot_redlawsk_replication()
+	plot_carlson_replication()
